@@ -1,4 +1,4 @@
-# wurm-unlimited-item-damage-warning
+# Wurm-Unlimited-Item-Damage-Warning
 Gives a popup when one of your items is above 90% Damage
 
 If you want to get a reminder popup on your item when it is about to break, right click the item in question and select "Toggle Dam. Warn."
