@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="ItemDamageWarning">
+    <output-path>D:/Spiele/Steam/steamapps/common/Wurm Unlimited Dedicated Server/mods/ItemDamageWarning</output-path>
+    <root id="archive" name="ItemDamageWarning.jar">
+      <element id="module-output" name="wurm-unlimited-item-damage-warning" />
+    </root>
+  </artifact>
+</component>
