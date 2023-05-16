@@ -34,19 +34,12 @@ public class ItemDamageWarning implements WurmServerMod, Initable, PlayerMessage
 
     @Override
     public boolean onPlayerMessage(Communicator communicator, String message) {
-        if (message.contains("bml")) {
-           Test.testMe(communicator.getPlayer());
-
-            return true;
-
-        }
-        else
-            return false;
+       return false;
     }
 
     @Override
     public void configure(Properties properties) {
-        Config.warningAt=Float.parseFloat(properties.getProperty("warningAt","90.0"));
+
     }
 
     @Override
@@ -54,20 +47,36 @@ public class ItemDamageWarning implements WurmServerMod, Initable, PlayerMessage
 
         if (!finishedReadingDb)
         {
+
             dbconn=ModSupportDb.getModSupportDb();
             logger.log(Level.INFO,"reading from the SQL Database");
             try {
-                if (!ModSupportDb.hasTable(dbconn, "ArathoksDamageWarnings")) {
+                if (ModSupportDb.hasTable(dbconn, "ArathoksDamageWarnings")) {
                     // table create
-                     PreparedStatement ps = dbconn.prepareStatement("CREATE TABLE ArathoksDamageWarnings (itemId LONG PRIMARY KEY NOT NULL DEFAULT 0,playerId LONG NOT NULL DEFAULT 0 )");
+                     PreparedStatement ps = dbconn.prepareStatement("DROP TABLE ArathoksDamageWarnings");
+                        ps.execute();
+
+
+                    }
+                if (ModSupportDb.hasTable(dbconn, "ArathoksDamageWarningsV2")) {
+                    // table create
+                    PreparedStatement ps = dbconn.prepareStatement("DROP TABLE ArathoksDamageWarningsV2");
+                    ps.execute();
+
+
+                }
+                if (!ModSupportDb.hasTable(dbconn, "ArathoksDamageWarningsV3")) {
+                    // table create
+                        PreparedStatement ps = dbconn.prepareStatement("CREATE TABLE ArathoksDamageWarningsV3 (itemId LONG PRIMARY KEY NOT NULL DEFAULT 0,playerId LONG NOT NULL DEFAULT 0, targetDamage REAL NOT NULL DEFAULT 0, warningType BOOLEAN NOT NULL DEFAULT 0)");
                         ps.execute();
 
                 }
-                ToggleDamWarnPerformer.readFromDb(dbconn);
+                TurnDamWarnOnPerformer.readFromDb();
+                finishedReadingDb=true;
             } catch (SQLException e) {
                 e.printStackTrace();
             }
-            finishedReadingDb=true;
+
         }
 
     }

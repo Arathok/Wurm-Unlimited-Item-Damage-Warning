@@ -12,23 +12,47 @@ import java.util.List;
 
 public class DamWarnBehaviour implements BehaviourProvider {
 
-    private final List<ActionEntry> toggleWarn;
+    private List<ActionEntry> toggleWarnOn;
+    private List<ActionEntry> toggleWarnOff;
 
-    private final ToggleDamWarnPerformer warnPerformer;
+    private final TurnDamWarnOnPerformer warnOnPerformer;
+    private final TurnDamWarnOffPerformer warnOffPerformer;
+
 
     public DamWarnBehaviour() {
-        this.warnPerformer = new ToggleDamWarnPerformer();
-        this.toggleWarn = Collections.singletonList(warnPerformer.actionEntry);
-        ModActions.registerActionPerformer(warnPerformer);
+
+        this.warnOnPerformer = new TurnDamWarnOnPerformer();
+        this.warnOffPerformer= new TurnDamWarnOffPerformer();
+        this.toggleWarnOn = Collections.singletonList(warnOnPerformer.actionEntry);
+        this.toggleWarnOff = Collections.singletonList(warnOffPerformer.actionEntry);
+        ModActions.registerActionPerformer(warnOnPerformer);
+        ModActions.registerActionPerformer(warnOffPerformer);
 
 
     }
     @Override
     public List<ActionEntry> getBehavioursFor(Creature performer, Item target) {
-       if (ToggleDamWarnPerformer.canUse(performer,target))
-        return new ArrayList<>(toggleWarn);
-        else
-            return null;
+        boolean alreadyInList = false;
+      DamageWarning aDamageWarning = null;
+        for (DamageWarning anotherDamageWarning : Hook.giveWarning)
+      {
+          if (target.getWurmId() == anotherDamageWarning.itemId) {
+              alreadyInList = true;
+
+              break;
+          }
+      }
+
+      if (alreadyInList)
+      {
+
+          return new ArrayList<>(toggleWarnOff);
+      }
+      else
+      {
+
+          return new ArrayList<>(toggleWarnOn);
+      }
 
     }
     @Override

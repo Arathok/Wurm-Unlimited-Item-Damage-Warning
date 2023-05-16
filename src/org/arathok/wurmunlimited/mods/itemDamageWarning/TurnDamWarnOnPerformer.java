@@ -1,5 +1,6 @@
 package org.arathok.wurmunlimited.mods.itemDamageWarning;
 
+import com.wurmonline.server.NoSuchPlayerException;
 import com.wurmonline.server.behaviours.Action;
 import com.wurmonline.server.behaviours.ActionEntry;
 import com.wurmonline.server.creatures.Creature;
@@ -16,18 +17,20 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.logging.Level;
 
-public class ToggleDamWarnPerformer implements ActionPerformer {
+public class TurnDamWarnOnPerformer implements ActionPerformer {
     public ActionEntry actionEntry;
 
 
-    public ToggleDamWarnPerformer() {
-        actionEntry = new ActionEntryBuilder((short) ModActions.getNextActionId(), "Toggle Dam. Warn.", "closing",
+
+    public TurnDamWarnOnPerformer() {
+        actionEntry = new ActionEntryBuilder((short) ModActions.getNextActionId(), "Turn On Dam. Warn.", "thinking",
                 new int[]{
                         6 /* ACTION_TYPE_NOMOVE */,
                         48 /* ACTION_TYPE_ENEMY_ALWAYS */,
                         35 /* DONT CARE WHETHER SOURCE OR TARGET */,
 
                 }).range(4).build();
+
 
         ModActions.registerAction(actionEntry);
 
@@ -50,9 +53,9 @@ public class ToggleDamWarnPerformer implements ActionPerformer {
     @Override
     public boolean action(Action action, Creature performer, Item target, short num, float counter) {
 
-
+    DamageWarning damageWarningToSend = null;
         if (!canUse(performer, target)) {
-            performer.getCommunicator().sendAlertServerMessage("You are not allowed to do that");
+            performer.getCommunicator().sendAlertServerMessage("Only the Owner of that Item can do that!");
             return propagate(action,
                     ActionPropagation.FINISH_ACTION,
                     ActionPropagation.NO_SERVER_PROPAGATION,
@@ -60,29 +63,34 @@ public class ToggleDamWarnPerformer implements ActionPerformer {
 
         }
 
-        if (!Hook.giveWarning.containsKey(target.getWurmId())) {
-            Connection dbconn = ModSupportDb.getModSupportDb();
-            Hook.giveWarning.put(target.getWurmId(), performer.getWurmId());
+        try {
+            boolean damageWarningfound = false;
+            float targetDamage = 0;
+            boolean warningSetting = false;
+            int index=-1;
+            for (DamageWarning aDamageWarning: Hook.giveWarning)
+            {
 
-            try {
-                ToggleDamWarnPerformer.insert(dbconn,target.getWurmId(),performer.getWurmId());
-            } catch (SQLException e) {
-                ItemDamageWarning.logger.log(Level.WARNING, "something went wrong writing to the DB!", e);
-                e.printStackTrace();
+
+                if (aDamageWarning.playerId==performer.getWurmId()&&Hook.giveWarning.indexOf(aDamageWarning)>index)
+                {
+
+                    targetDamage=aDamageWarning.targetDamage;
+                    warningSetting=aDamageWarning.warningType;
+                    damageWarningfound=true;
+                    index = Hook.giveWarning.indexOf(aDamageWarning);
+
+                }
+
             }
-            performer.getCommunicator().sendSafeServerMessage("You make a mental note to care about this items Damage.");
+            if (!damageWarningfound)
+                damageWarningToSend=new DamageWarning(target.getWurmId(), performer.getWurmId(),0.0f,false,90.0f,false);
+            else
+                damageWarningToSend=new DamageWarning(target.getWurmId(), performer.getWurmId(),0.0f,false,targetDamage,warningSetting);
 
-        } else {
-            Hook.giveWarning.remove(target.getWurmId());
-            performer.getCommunicator().sendSafeServerMessage("You no longer care about the damage on this item.");
-            Connection dbconn = ModSupportDb.getModSupportDb();
-
-            try {
-                ToggleDamWarnPerformer.remove(dbconn,target.getWurmId());
-            } catch (SQLException e) {
-                ItemDamageWarning.logger.log(Level.WARNING, "Could not remove from DB!", e);
-                e.printStackTrace();
-            }
+            DamageWarningQuestion.send(damageWarningToSend);
+        } catch (NoSuchPlayerException e) {
+            e.printStackTrace();
         }
 
 
@@ -92,27 +100,37 @@ public class ToggleDamWarnPerformer implements ActionPerformer {
                 ActionPropagation.NO_ACTION_PERFORMER_PROPAGATION);
     }
 
-    public static void readFromDb(Connection connection) {
+    public static void readFromDb() {
         try {
-            PreparedStatement ps = connection.prepareStatement("SELECT * FROM ArathoksDamageWarnings");
+            Connection dbconn = ModSupportDb.getModSupportDb();
+            PreparedStatement ps = dbconn.prepareStatement("SELECT * FROM ArathoksDamageWarningsV3");
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 long itemId = rs.getLong("itemId"); // liest quasi den Wert von der Spalte
                 long playerId = rs.getLong("playerId"); // liest quasi den Wert von der Spalte
-                Hook.giveWarning.put(itemId, playerId);
+                float targetdDamage = rs.getFloat("targetDamage");
+                boolean warningLevel = rs.getBoolean("warningType");
+                float previousDamageSetting = rs.getFloat("previousDamageSetting");
+                boolean previousWarningLevel = rs.getBoolean("previousWarningType");
+
+                Hook.giveWarning.add(new DamageWarning(itemId,playerId,targetdDamage,warningLevel,previousDamageSetting,previousWarningLevel));
 
             }
+            rs.close();
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    public static void insert(Connection dbconn,long itemId,long playerId) throws SQLException {
+    public static void insert(DamageWarning aDamageWarning) throws SQLException {
         try {
-            PreparedStatement ps = dbconn.prepareStatement("INSERT OR REPLACE INTO ArathoksDamageWarnings (itemId,playerId) VALUES (?,?)");
-            ps.setLong(1, itemId);
-            ps.setLong(2, playerId);
+            Connection dbconn = ModSupportDb.getModSupportDb();
+            PreparedStatement ps = dbconn.prepareStatement("INSERT OR REPLACE INTO ArathoksDamageWarningsV3 (itemId,playerId,targetDamage,warningType) VALUES (?,?,?,?)");
+            ps.setLong(1, aDamageWarning.itemId);
+            ps.setLong(2, aDamageWarning.playerId);
+            ps.setFloat(3, aDamageWarning.targetDamage);
+            ps.setBoolean(4, aDamageWarning.warningType);
 
             ps.executeUpdate();
             ps.close();
@@ -124,13 +142,14 @@ public class ToggleDamWarnPerformer implements ActionPerformer {
 
     }
 
-    public static void remove(Connection dbconn, long itemId) throws SQLException {
-
-            PreparedStatement ps = dbconn.prepareStatement("DELETE FROM FuelStorageV2 WHERE itemId = ?");
-            ps.setLong(1, itemId);
+    public static void remove(DamageWarning aDamageWarning) throws SQLException {
+        Connection dbconn= ModSupportDb.getModSupportDb();
+            PreparedStatement ps = dbconn.prepareStatement("DELETE FROM ArathoksDamageWarningsV3 WHERE itemId = ?");
+            ps.setLong(1, aDamageWarning.itemId);
             ps.execute();
             ps.close();
 
     }
+
 
 }
