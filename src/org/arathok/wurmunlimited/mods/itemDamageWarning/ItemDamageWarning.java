@@ -18,16 +18,17 @@ public class ItemDamageWarning implements WurmServerMod, Initable,PreInitable, P
     public static Connection dbconn;
     public static boolean finishedReadingDb = false;
     public static Logger logger = Logger.getLogger("ItemDamageWarning");
+
     @Override
     public void init() {
         try {
-            logger.log(Level.INFO,"injecting Item Damage Warning Hook");
+            logger.log(Level.INFO, "injecting Item Damage Warning Hook");
             Hook.insertHook();
         } catch (NotFoundException e) {
-            logger.log(Level.SEVERE,"class Item not found",e);
+            logger.log(Level.SEVERE, "class Item not found", e);
             e.printStackTrace();
         } catch (CannotCompileException e) {
-            logger.log(Level.SEVERE,"compiler error",e);
+            logger.log(Level.SEVERE, "compiler error", e);
             e.printStackTrace();
         }
     }
@@ -35,11 +36,11 @@ public class ItemDamageWarning implements WurmServerMod, Initable,PreInitable, P
     @Override
     public void preInit() {
         ModActions.init();
-    }
+    } // TESt
 
     @Override
     public boolean onPlayerMessage(Communicator communicator, String message) {
-       return false;
+        return false;
     }
 
     @Override
@@ -50,19 +51,18 @@ public class ItemDamageWarning implements WurmServerMod, Initable,PreInitable, P
     @Override
     public void onServerPoll() {
 
-        if (!finishedReadingDb)
-        {
+        if (!finishedReadingDb) {
 
-            dbconn=ModSupportDb.getModSupportDb();
-            logger.log(Level.INFO,"reading from the SQL Database");
+            dbconn = ModSupportDb.getModSupportDb();
+            logger.log(Level.INFO, "reading from the SQL Database");
             try {
                 if (ModSupportDb.hasTable(dbconn, "ArathoksDamageWarnings")) {
                     // table create
-                     PreparedStatement ps = dbconn.prepareStatement("DROP TABLE ArathoksDamageWarnings");
-                        ps.execute();
+                    PreparedStatement ps = dbconn.prepareStatement("DROP TABLE ArathoksDamageWarnings");
+                    ps.execute();
 
 
-                    }
+                }
                 if (ModSupportDb.hasTable(dbconn, "ArathoksDamageWarningsV2")) {
                     // table create
                     PreparedStatement ps = dbconn.prepareStatement("DROP TABLE ArathoksDamageWarningsV2");
@@ -72,12 +72,12 @@ public class ItemDamageWarning implements WurmServerMod, Initable,PreInitable, P
                 }
                 if (!ModSupportDb.hasTable(dbconn, "ArathoksDamageWarningsV3")) {
                     // table create
-                        PreparedStatement ps = dbconn.prepareStatement("CREATE TABLE ArathoksDamageWarningsV3 (itemId LONG PRIMARY KEY NOT NULL DEFAULT 0,playerId LONG NOT NULL DEFAULT 0, targetDamage REAL NOT NULL DEFAULT 0, warningType BOOLEAN NOT NULL DEFAULT 0)");
-                        ps.execute();
+                    PreparedStatement ps = dbconn.prepareStatement("CREATE TABLE ArathoksDamageWarningsV3 (itemId LONG PRIMARY KEY NOT NULL DEFAULT 0,playerId LONG NOT NULL DEFAULT 0, targetDamage REAL NOT NULL DEFAULT 0, warningType BOOLEAN NOT NULL DEFAULT 0)");
+                    ps.execute();
 
                 }
                 TurnDamWarnOnPerformer.readFromDb();
-                finishedReadingDb=true;
+                finishedReadingDb = true;
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -88,7 +88,7 @@ public class ItemDamageWarning implements WurmServerMod, Initable,PreInitable, P
 
     @Override
     public void onServerStarted() {
-        ModActions.init();
+
         ModActions.registerBehaviourProvider(new DamWarnBehaviour());
     }
 }
