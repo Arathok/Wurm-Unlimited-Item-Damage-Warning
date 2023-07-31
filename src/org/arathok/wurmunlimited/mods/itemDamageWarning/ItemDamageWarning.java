@@ -14,7 +14,7 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ItemDamageWarning implements WurmServerMod, Initable, PlayerMessageListener, Configurable, ServerPollListener,ServerStartedListener {
+public class ItemDamageWarning implements WurmServerMod, Initable,PreInitable, PlayerMessageListener, Configurable, ServerPollListener,ServerStartedListener {
     public static Connection dbconn;
     public static boolean finishedReadingDb = false;
     public static Logger logger = Logger.getLogger("ItemDamageWarning");
@@ -30,6 +30,11 @@ public class ItemDamageWarning implements WurmServerMod, Initable, PlayerMessage
             logger.log(Level.SEVERE,"compiler error",e);
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void preInit() {
+        ModActions.init();
     }
 
     @Override
@@ -83,6 +88,7 @@ public class ItemDamageWarning implements WurmServerMod, Initable, PlayerMessage
 
     @Override
     public void onServerStarted() {
+        ModActions.init();
         ModActions.registerBehaviourProvider(new DamWarnBehaviour());
     }
 }
